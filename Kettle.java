@@ -103,40 +103,7 @@ public class Kettle {
 	}
 	
 	public void sendCommand(KettleCommand command) {
-		String message = "set sys output 0x";
-		
-		switch (command) {
-		case BTN_OFF:
-			message += "0";
-			break;
-		case BTN_ON:
-			message += "4";
-			break;
-		case BTN_100C:
-			message += "80";
-			break;
-		case BTN_95C:
-			message += "2";
-			break;
-		case BTN_80C:
-			message += "4000";
-			break;
-		case BTN_65C:
-			message += "200";
-			break;
-		case BTN_WARM:
-			message += "8";
-			break;
-		case BTN_WARM_5:
-			message += "8005";
-			break;
-		case BTN_WARM_10:
-			message += "8010";
-			break;
-		case BTN_WARM_20:
-			message += "8020";
-			break;
-		}
+		String message = "set sys output"+command.code();
 		send(message += "\n");
 	}
 	
