@@ -119,7 +119,7 @@ public class Kettle {
 	
 	private void send(OutputStream out, String message) {
 		try {
-			out.write(message.getBytes(StandardCharsets.UTF_8));
+			out.write(message.getBytes(StandardCharsets.US_ASCII));
 		}
 		catch (IOException e) {
 			e.printStackTrace();
