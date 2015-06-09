@@ -8,11 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +22,7 @@ public class Kettle {
     private InputStream inputStream;
     private String hostname;
     private final int port = 2000;
-    public String ipPrefix="192.168.1.";
+    public String iIPV4="192.168.1.";
     
     public String getHostname() {
         return hostname;
@@ -36,11 +32,12 @@ public class Kettle {
         return port;
     }
 
-    public Kettle() {
-        this("192.168.1.");
+    public boolean isConnected() {
+        return (sock!=null);
     }
-    public Kettle(String networkPrefix) {
-        this.ipPrefix = networkPrefix;
+
+    public Kettle() throws UnknownHostException {
+        this.iIPV4 = InetAddress.getLocalHost().getHostAddress().substring(0, InetAddress.getLocalHost().getHostAddress().lastIndexOf('.')) + ".";
         sock = scan();
         if(sock != null) {
             this.hostname = sock.getInetAddress().getHostAddress();
@@ -55,13 +52,11 @@ public class Kettle {
             listenerThread = new Thread(listener);
             listenerThread.start();
         }
-        else System.out.println("No kettle found");
     }
     
     public Kettle(InetAddress address){
         //Store hostname and port
         this.hostname = address.getHostAddress();
-        
         try {
             sock = new Socket(hostname, port); //Attempt to create a socket
             outputStream = sock.getOutputStream();
@@ -76,25 +71,24 @@ public class Kettle {
         listenerThread.start();
     }
     
-    public Socket scan() {
+    private Socket scan() {
         for (int i = 1; i < 254; i++){
-            System.out.println(ipPrefix+i);
+            System.out.println(iIPV4 + i + " ");
             try {
-                Socket mySocket = new Socket();
-                SocketAddress address = new InetSocketAddress(ipPrefix+i, port);
-                mySocket.setSoTimeout(2000);
-                mySocket.connect(address, 500);   
-                
-                BufferedReader in = new BufferedReader(new InputStreamReader(mySocket.getInputStream()));
-                send(mySocket.getOutputStream(), "HELLOKETTLE\n");
-                try {
-                    String response = in.readLine();
-                    if (response.startsWith("HELLOAPP")) {
-                        return mySocket;
+                    Socket mySocket = new Socket();
+                    SocketAddress address = new InetSocketAddress(iIPV4 + i, port);
+                    mySocket.setSoTimeout(2000);
+                    mySocket.connect(address, 500);
+
+                    BufferedReader in = new BufferedReader(new InputStreamReader(mySocket.getInputStream()));
+                    send(mySocket.getOutputStream(), "HELLOKETTLE\n");
+                    try {
+                        String response = in.readLine();
+                        if (response.startsWith(KettleStatus.HELLO.code())) {
+                            return mySocket;
+                        }
+                    } catch (SocketTimeoutException e) {
                     }
-                }
-                catch (SocketTimeoutException e) {
-                }
             }
             catch (IOException e) {
             }
@@ -114,7 +108,7 @@ public class Kettle {
     public KettleStatus[] getStatus() {
         List<KettleStatus> result = new ArrayList<KettleStatus>();
         listener.transferQueue.drainTo(result);
-        return (KettleStatus[]) result.toArray(new KettleStatus[result.size()]);
+        return result.toArray(new KettleStatus[result.size()]);
     }
     
     private void send(OutputStream out, String message) {
