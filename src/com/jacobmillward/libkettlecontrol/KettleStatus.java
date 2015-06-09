@@ -1,4 +1,4 @@
-package com.jacobmillward.kettlecontrol;
+package com.jacobmillward.libkettlecontrol;
 
 public enum KettleStatus {
 		SEL_100C("0x100"),

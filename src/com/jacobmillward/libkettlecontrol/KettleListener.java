@@ -1,4 +1,4 @@
-package com.jacobmillward.kettlecontrol;
+package com.jacobmillward.libkettlecontrol;
 
 import java.io.BufferedReader;
 import java.io.IOException;

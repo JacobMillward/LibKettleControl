@@ -1,7 +1,7 @@
 // Uses the information here: http://www.awe.com/mark/blog/20140223.html
 // to decode responses, and send commands to the iKettle.
 // Jacob Millward 28 Dec 2014
-package com.jacobmillward.kettlecontrol;
+package com.jacobmillward.libkettlecontrol;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package com.jacobmillward.kettlecontrol;
+package com.jacobmillward.libkettlecontrol;
 
 public enum KettleCommand {
 		BTN_100C("0x80"),
