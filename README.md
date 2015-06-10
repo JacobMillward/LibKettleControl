@@ -1,2 +1,2 @@
-# KettleControl
-A series of classes for communicating with the iKettle by Smarter Appliances
+# LibKettleControl
+A small library for communicating with the iKettle by Smarter Appliances
