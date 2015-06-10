@@ -9,14 +9,15 @@ import java.util.concurrent.LinkedTransferQueue;
 
 class KettleListener implements Runnable {
     public volatile BufferedReader inputReader;
-    public LinkedTransferQueue<KettleStatus> transferQueue;
+    public LinkedTransferQueue<KettleStatus> messageQueue;
     public volatile boolean closing = false;
     
     public KettleListener(InputStream inputStream) {
         this.inputReader = new BufferedReader(new InputStreamReader(inputStream));
-        transferQueue = new LinkedTransferQueue<KettleStatus>();
+        messageQueue = new LinkedTransferQueue<>();
     }
-    
+
+    @Override
     public void run() {
         //For lifetime of thread
         while(!closing) {
@@ -25,7 +26,7 @@ class KettleListener implements Runnable {
                 if(inputReader.ready()) {
                     statusString = inputReader.readLine();
                     for(KettleStatus status : handleMessage(statusString)) {
-                        transferQueue.offer(status);
+                        messageQueue.offer(status);
                     }
                 }
             } catch (IOException e) {
@@ -42,7 +43,7 @@ class KettleListener implements Runnable {
     
     private KettleStatus[] handleMessage(String message) {
         //Check if message is asynchronous update or requested status
-        KettleStatus[] result = null;
+        KettleStatus[] result;
         if(message.startsWith("sys status key=")) {
             //Check if there is a status character
             if(message.length() == 18) {

@@ -107,7 +107,7 @@ public class Kettle {
     
     public KettleStatus[] getStatus() {
         List<KettleStatus> result = new ArrayList<KettleStatus>();
-        listener.transferQueue.drainTo(result);
+        listener.messageQueue.drainTo(result);
         return result.toArray(new KettleStatus[result.size()]);
     }
     
