@@ -15,130 +15,56 @@ import java.util.List;
 
 public class Kettle {
     
-    private Socket sock;
-    private KettleListener listener;
-    private Thread listenerThread;
-    private OutputStream outputStream;
-    private InputStream inputStream;
-    private String hostname;
-    private final int port = 2000;
-    public String iIPV4="192.168.1.";
+    private KettleConnection kettleCon;
+    private Thread kettleConThread;
     
     public String getHostname() {
-        return hostname;
+        return kettleCon.getHostname();
     }
 
     public int getPort() {
-        return port;
+        return kettleCon.getPort();
     }
 
     public boolean isConnected() {
-        return (sock!=null);
+        return kettleCon.isConnected();
     }
 
-    public Kettle() throws UnknownHostException {
-        this.iIPV4 = InetAddress.getLocalHost().getHostAddress().substring(0, InetAddress.getLocalHost().getHostAddress().lastIndexOf('.')) + ".";
-        sock = scan();
-        if(sock != null) {
-            this.hostname = sock.getInetAddress().getHostAddress();
-            try {
-                inputStream = sock.getInputStream();
-                outputStream = sock.getOutputStream();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            
-            listener = new KettleListener(inputStream);
-            listenerThread = new Thread(listener);
-            listenerThread.start();
-        }
+    public Kettle() {
+        kettleCon = new KettleConnection();
+        kettleConThread = new Thread(kettleCon);
+        kettleConThread.start();
     }
     
-    public Kettle(InetAddress address){
-        //Store hostname and port
-        this.hostname = address.getHostAddress();
-        try {
-            sock = new Socket(hostname, port); //Attempt to create a socket
-            outputStream = sock.getOutputStream();
-            inputStream = sock.getInputStream();
-        }
-        catch (IOException e) {
-            System.out.println("Could not create socket");
-            e.printStackTrace();
-        }
-        listener = new KettleListener(inputStream);
-        listenerThread = new Thread(listener);
-        listenerThread.start();
-    }
-    
-    private Socket scan() {
-        for (int i = 1; i < 254; i++){
-            System.out.println(iIPV4 + i + " ");
-            try {
-                    Socket mySocket = new Socket();
-                    SocketAddress address = new InetSocketAddress(iIPV4 + i, port);
-                    mySocket.setSoTimeout(2000);
-                    mySocket.connect(address, 500);
-
-                    BufferedReader in = new BufferedReader(new InputStreamReader(mySocket.getInputStream()));
-                    send(mySocket.getOutputStream(), "HELLOKETTLE\n");
-                    try {
-                        String response = in.readLine();
-                        if (response.startsWith(KettleStatus.HELLO.code())) {
-                            return mySocket;
-                        }
-                    } catch (SocketTimeoutException e) {
-                    }
-            }
-            catch (IOException e) {
-            }
-        }
-        return null;
+    public Kettle(InetAddress address) {
+        kettleCon = new KettleConnection(address);
+        kettleConThread = new Thread(kettleCon);
+        kettleConThread.start();
     }
     
     public void sendCommand(KettleCommand command) {
-        String message = "set sys output"+command.code();
-        send(message += "\n");
+        kettleCon.commandQueue.offer(command);
     }
     
     public void askButtonStatus() throws IOException {
-        send("get sys status\n");
+        kettleCon.send("get sys status\n");
     }
     
-    public KettleStatus[] getStatus() {
-        List<KettleStatus> result = new ArrayList<KettleStatus>();
-        listener.messageQueue.drainTo(result);
-        return result.toArray(new KettleStatus[result.size()]);
+    public ArrayList<KettleStatus> getStatus() {
+        ArrayList<KettleStatus> result = new ArrayList<>();
+        kettleCon.messageQueue.drainTo(result);
+        return result;
     }
-    
-    private void send(OutputStream out, String message) {
-        try {
-            out.write(message.getBytes(StandardCharsets.US_ASCII));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    private void send(String message) {
-        try {
-            outputStream.write(message.getBytes(StandardCharsets.US_ASCII));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
+
     public void close() throws IOException {
-        listener.closing = true;
+        kettleCon.close();
+        kettleCon.closing = true;
         try {
-            listenerThread.join();
+            kettleConThread.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        outputStream.close();
-        inputStream.close(); 
-        sock.close();
     }
+
     
 }

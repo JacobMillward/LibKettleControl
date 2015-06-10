@@ -38,7 +38,6 @@ class KettleListener implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return;
     }
     
     private KettleStatus[] handleMessage(String message) {
