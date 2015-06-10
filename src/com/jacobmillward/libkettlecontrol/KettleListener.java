@@ -26,6 +26,7 @@ class KettleListener implements Runnable {
                 if(inputReader.ready()) {
                     statusString = inputReader.readLine();
                     for(KettleStatus status : handleMessage(statusString)) {
+                        System.out.println("Adding message to Listener queue");
                         messageQueue.offer(status);
                     }
                 }

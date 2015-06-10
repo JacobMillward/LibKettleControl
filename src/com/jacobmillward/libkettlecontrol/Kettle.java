@@ -30,14 +30,14 @@ public class Kettle {
         return kettleCon.isConnected();
     }
 
-    public Kettle() {
-        kettleCon = new KettleConnection();
+    public Kettle(KettleCallback c) {
+        kettleCon = new KettleConnection(c);
         kettleConThread = new Thread(kettleCon);
         kettleConThread.start();
     }
     
-    public Kettle(InetAddress address) {
-        kettleCon = new KettleConnection(address);
+    public Kettle(InetAddress address, KettleCallback c) {
+        kettleCon = new KettleConnection(address, c);
         kettleConThread = new Thread(kettleCon);
         kettleConThread.start();
     }

@@ -3,8 +3,6 @@ package com.jacobmillward.libkettlecontrol;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.LinkedTransferQueue;
 
 class KettleConnection implements Runnable {
@@ -20,6 +18,7 @@ class KettleConnection implements Runnable {
     private String iIPV4 = "192.168.1.";
     private String hostname;
     private final int port = 2000;
+    private KettleCallback callback;
 
     public String getHostname() {
         return hostname;
@@ -29,16 +28,18 @@ class KettleConnection implements Runnable {
         return port;
     }
 
-    public KettleConnection() {
+    public KettleConnection(KettleCallback c) {
         commandQueue = new LinkedTransferQueue<>();
         messageQueue = new LinkedTransferQueue<>();
+        callback = c;
     }
 
-    public KettleConnection(InetAddress address) {
+    public KettleConnection(InetAddress address, KettleCallback c) {
         //Store hostname
         this.hostname = address.getHostAddress();
         commandQueue = new LinkedTransferQueue<>();
         messageQueue = new LinkedTransferQueue<>();
+        callback = c;
     }
 
     @Override
@@ -57,25 +58,28 @@ class KettleConnection implements Runnable {
         else {
             try {
                 this.iIPV4 = InetAddress.getLocalHost().getHostAddress().substring(0, InetAddress.getLocalHost().getHostAddress().lastIndexOf('.')) + ".";
+                sock = scan();
+                if (sock != null) {
+                    this.hostname = sock.getInetAddress().getHostAddress();
+                    try {
+                        inputStream = sock.getInputStream();
+                        outputStream = sock.getOutputStream();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    callback.onConnectionComplete();
+                    return;
+                }
             } catch (UnknownHostException e) {
                 e.printStackTrace();
-            }
-            sock = scan();
-            if (sock != null) {
-                this.hostname = sock.getInetAddress().getHostAddress();
-                try {
-                    inputStream = sock.getInputStream();
-                    outputStream = sock.getOutputStream();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
 
         listener = new KettleListener(inputStream);
         listenerThread = new Thread(listener);
         listenerThread.start();
-
+        callback.onConnectionComplete();
         //For lifetime of thread
         while(!closing) {
             //Send any waiting commands
@@ -85,22 +89,20 @@ class KettleConnection implements Runnable {
                 send(message += "\n");
             }
             //Retrieve any waiting status messages
-            while (!messageQueue.isEmpty()) {
-                this.messageQueue.offer(listener.messageQueue.poll());
-            }
+            listener.messageQueue.drainTo(this.messageQueue);
         }
 
     }
 
     private Socket scan() {
         for (int i = 1; i < 254; i++){
-            System.out.println(iIPV4 + i + " ");
+            System.out.println("Attempting Connection with "+iIPV4 + i);
             try {
                 Socket mySocket = new Socket();
                 SocketAddress address = new InetSocketAddress(iIPV4 + i, port);
                 mySocket.setSoTimeout(2000);
                 mySocket.connect(address, 500);
-
+                System.out.println("Attempting Handshake");
                 BufferedReader in = new BufferedReader(new InputStreamReader(mySocket.getInputStream()));
                 send(mySocket.getOutputStream(), "HELLOKETTLE\n");
                 try {
